@@ -1,0 +1,36 @@
+name: Set Reminder
+
+on:
+  workflow_dispatch:
+    inputs:
+      what:
+        description: "What to remind about"
+        required: true
+      when:
+        description: "When? (ISO 8601: 2025-10-28T14:00:00-04:00)"
+        required: true
+      category:
+        description: "Category"
+        required: true
+        default: "Reflections & Questions"
+        type: choice
+        options:
+          - "Personal Projects"
+          - "Reflections & Questions"
+          - "Math & Coding"
+          - "Sciences"
+
+jobs:
+  create_reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Reminder Issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create the reminder issue
+          gh issue create \
+            --title "[Reminder] ${{ github.event.inputs.what }} — ${{ github.event.inputs.when }}" \
+            --body "**What:** ${{ github.event.inputs.what }}\n**When:** ${{ github.event.inputs.when }}\n**Category:** ${{ github.event.inputs.category }}\n**Auto-cron:** \`$(date -d '${{ github.event.inputs.when }}' '+%M %H * * *' 2>/dev/null || echo 'Invalid date format')\`\n\n---\n\n*This reminder was created automatically via GitHub Actions.*" \
+            --label "type:reminder,${{ github.event.inputs.category }}"
