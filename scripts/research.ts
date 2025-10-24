@@ -159,8 +159,8 @@ Format your response as a structured research brief with clear sections.`;
       {
         title: this.topic,
         description: `Research findings from Perplexity AI for: ${this.topic}`,
-        priority: 'high',
-        status: 'completed'
+        priority: 'high' as const,
+        status: 'completed' as const
       }
     ];
 
