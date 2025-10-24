@@ -45,8 +45,26 @@ jobs:
           git -c user.name='ci' -c user.email='ci@users.noreply.github.com' commit -m "AI: research & synthesis for ${{ github.event.inputs.topic }}"
           git push --set-upstream origin "${{ github.event.inputs.branch }}"
 
-      - name: Open PR
+      - name: Create PR (if possible)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create --title "AI: ${{ github.event.inputs.topic }}" --body-file SYNTHESIS.md --base main --head "${{ github.event.inputs.branch }}"
+          echo "Attempting to create PR..."
+          if gh pr create --title "AI: ${{ github.event.inputs.topic }}" --body-file SYNTHESIS.md --base main --head "${{ github.event.inputs.branch }}" 2>/dev/null; then
+            echo "✅ PR created successfully"
+          else
+            echo "⚠️  Could not create PR automatically. Please create manually:"
+            echo "   Branch: ${{ github.event.inputs.branch }}"
+            echo "   Title: AI: ${{ github.event.inputs.topic }}"
+            echo "   Body: See SYNTHESIS.md file"
+            echo ""
+            echo "Files created:"
+            echo "- RESEARCH.md (research findings)"
+            echo "- SYNTHESIS.md (synthesis and plan)"
+            echo ""
+            echo "To create PR manually:"
+            echo "1. Go to your repository"
+            echo "2. Switch to branch: ${{ github.event.inputs.branch }}"
+            echo "3. Click 'Compare & pull request'"
+            echo "4. Use SYNTHESIS.md content as PR description"
+          fi
