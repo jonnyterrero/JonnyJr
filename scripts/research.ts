@@ -104,9 +104,22 @@ class AIResearch {
   async perplexityResearch(): Promise<void> {
     console.log('🤖 Querying Perplexity API...');
     
+    const researchPrompt = `You are a research assistant. Please provide a comprehensive research brief on the following topic:
+
+Topic: ${this.topic}
+
+Please provide:
+1. Key findings and insights (3-5 bullet points)
+2. Important sources and references (3-5 reputable sources)
+3. Research gaps and opportunities
+4. Practical applications or implications
+5. Next steps for further research
+
+Format your response as a structured research brief with clear sections.`;
+
     const body = {
       model: "pplx-7b-chat",
-      messages: [{ role: "user", content: `Research this topic:\n${this.topic}` }],
+      messages: [{ role: "user", content: researchPrompt }],
       search_domain_filter: ["web"],
     };
 
@@ -125,6 +138,10 @@ class AIResearch {
 
     const json = await res.json() as PerplexityResponse;
     const text = json?.choices?.[0]?.message?.content ?? "No result";
+    
+    if (text === "No result" || text.trim().length < 50) {
+      throw new Error("Perplexity API returned insufficient results");
+    }
     
     this.findings.perplexityResults = text;
     console.log('✅ Perplexity research completed');
@@ -147,11 +164,51 @@ class AIResearch {
       }
     ];
 
-    // Extract key insights (simplified parsing)
-    this.findings.insights = lines
-      .filter(line => line.includes('•') || line.includes('-') || line.includes('*'))
-      .slice(0, 5)
-      .map(line => line.replace(/^[•\-\*]\s*/, '').trim());
+    // Extract key insights with better parsing
+    const insights = [];
+    let inInsightsSection = false;
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      // Look for section headers
+      if (trimmedLine.toLowerCase().includes('key findings') || 
+          trimmedLine.toLowerCase().includes('insights') ||
+          trimmedLine.toLowerCase().includes('findings')) {
+        inInsightsSection = true;
+        continue;
+      }
+      
+      // Stop at next major section
+      if (inInsightsSection && (trimmedLine.toLowerCase().includes('sources') ||
+          trimmedLine.toLowerCase().includes('references') ||
+          trimmedLine.toLowerCase().includes('next steps') ||
+          trimmedLine.toLowerCase().includes('applications'))) {
+        break;
+      }
+      
+      // Extract bullet points and numbered items
+      if (inInsightsSection && (trimmedLine.startsWith('•') || 
+          trimmedLine.startsWith('-') || 
+          trimmedLine.startsWith('*') ||
+          trimmedLine.match(/^\d+\./))) {
+        const insight = trimmedLine.replace(/^[•\-\*\d+\.]\s*/, '').trim();
+        if (insight.length > 10) { // Only include substantial insights
+          insights.push(insight);
+        }
+      }
+    }
+    
+    // Fallback to simple bullet point extraction if section parsing failed
+    if (insights.length === 0) {
+      this.findings.insights = lines
+        .filter(line => line.includes('•') || line.includes('-') || line.includes('*'))
+        .slice(0, 5)
+        .map(line => line.replace(/^[•\-\*]\s*/, '').trim())
+        .filter(insight => insight.length > 10);
+    } else {
+      this.findings.insights = insights.slice(0, 5);
+    }
 
     // Generate next steps based on the research
     this.findings.nextSteps = [
@@ -165,44 +222,144 @@ class AIResearch {
   async simulateResearch(): Promise<void> {
     console.log('🔄 Using simulated research data...');
     
-    // Simulate research topics
-    this.findings.topics = [
-      {
-        title: this.topic,
-        description: `Simulated research for: ${this.topic}`,
-        priority: 'high',
-        status: 'in_progress'
-      },
-      {
-        title: 'Large Language Model Optimization',
-        description: 'Research into efficient training and inference methods',
-        priority: 'high',
-        status: 'pending'
-      },
-      {
-        title: 'Multimodal AI Integration',
-        description: 'Exploring vision-language model capabilities',
-        priority: 'medium',
-        status: 'pending'
-      }
-    ];
+    // Create meaningful research topics based on the input
+    const topicLower = this.topic.toLowerCase();
+    
+    // Generate relevant research topics based on keywords
+    const researchTopics = [];
+    
+    if (topicLower.includes('biomaterial') || topicLower.includes('material')) {
+      researchTopics.push(
+        {
+          title: 'Biomaterials for Medical Applications',
+          description: 'Research into biocompatible materials for implants and medical devices',
+          priority: 'high',
+          status: 'in_progress'
+        },
+        {
+          title: 'Tissue Engineering Materials',
+          description: 'Advanced materials for regenerative medicine and tissue scaffolds',
+          priority: 'high',
+          status: 'pending'
+        },
+        {
+          title: 'PRISMA Protocol Development',
+          description: 'Systematic review methodology for biomaterials research',
+          priority: 'medium',
+          status: 'pending'
+        }
+      );
+    } else if (topicLower.includes('math') || topicLower.includes('laplace') || topicLower.includes('equation')) {
+      researchTopics.push(
+        {
+          title: 'Mathematical Analysis Techniques',
+          description: 'Advanced methods for solving differential equations and transforms',
+          priority: 'high',
+          status: 'in_progress'
+        },
+        {
+          title: 'Numerical Methods',
+          description: 'Computational approaches for mathematical problem solving',
+          priority: 'high',
+          status: 'pending'
+        }
+      );
+    } else if (topicLower.includes('project') || topicLower.includes('build') || topicLower.includes('develop')) {
+      researchTopics.push(
+        {
+          title: 'Project Planning and Management',
+          description: 'Best practices for project development and execution',
+          priority: 'high',
+          status: 'in_progress'
+        },
+        {
+          title: 'Technology Stack Selection',
+          description: 'Choosing appropriate tools and frameworks for development',
+          priority: 'medium',
+          status: 'pending'
+        }
+      );
+    } else {
+      // Default research topics
+      researchTopics.push(
+        {
+          title: this.topic,
+          description: `Research analysis for: ${this.topic}`,
+          priority: 'high',
+          status: 'in_progress'
+        },
+        {
+          title: 'Related Research Areas',
+          description: 'Exploring connected topics and methodologies',
+          priority: 'medium',
+          status: 'pending'
+        }
+      );
+    }
 
-    // Generate insights
-    this.findings.insights = [
-      `Research focus: ${this.topic}`,
-      'Transformer architectures continue to show superior performance',
-      'Attention mechanisms can be optimized for better efficiency',
-      'Multimodal models require careful balance between modalities',
-      'Safety training should be integrated from early development'
-    ];
+    this.findings.topics = researchTopics;
 
-    // Define next steps
-    this.findings.nextSteps = [
-      `Deep dive into ${this.topic} implementation`,
-      'Implement attention optimization techniques',
-      'Design multimodal training pipeline',
-      'Develop safety evaluation metrics'
-    ];
+    // Generate contextual insights based on the topic
+    let insights = [];
+    
+    if (topicLower.includes('biomaterial')) {
+      insights = [
+        'Recent advances in biocompatible materials show promise for medical applications',
+        'PRISMA guidelines provide systematic framework for evidence synthesis',
+        'Tissue engineering requires careful material selection and biocompatibility testing',
+        'Systematic reviews help identify gaps in current research',
+        'Material properties must balance mechanical strength with biological compatibility'
+      ];
+    } else if (topicLower.includes('math') || topicLower.includes('laplace')) {
+      insights = [
+        'Laplace transforms provide powerful tools for solving differential equations',
+        'Numerical methods offer computational alternatives to analytical solutions',
+        'MATLAB and Python provide robust platforms for mathematical computation',
+        'Understanding mathematical foundations is crucial for engineering applications',
+        'Systematic approaches help organize complex mathematical problems'
+      ];
+    } else {
+      insights = [
+        `Key research focus: ${this.topic}`,
+        'Systematic approaches improve research quality and reproducibility',
+        'Evidence-based methods provide reliable foundations for decision making',
+        'Documentation and methodology are crucial for research success',
+        'Collaborative approaches enhance research outcomes'
+      ];
+    }
+
+    this.findings.insights = insights;
+
+    // Generate relevant next steps
+    let nextSteps = [];
+    
+    if (topicLower.includes('biomaterial')) {
+      nextSteps = [
+        'Conduct systematic literature review using PRISMA guidelines',
+        'Identify key material properties and biocompatibility requirements',
+        'Analyze current research gaps and opportunities',
+        'Develop research protocol and methodology',
+        'Plan experimental validation approaches'
+      ];
+    } else if (topicLower.includes('math') || topicLower.includes('laplace')) {
+      nextSteps = [
+        'Review mathematical foundations and theory',
+        'Implement computational solutions using appropriate software',
+        'Validate results through analytical and numerical methods',
+        'Document solution methodology and assumptions',
+        'Prepare comprehensive analysis and conclusions'
+      ];
+    } else {
+      nextSteps = [
+        `Develop comprehensive research plan for ${this.topic}`,
+        'Identify key resources and methodologies',
+        'Create systematic approach to information gathering',
+        'Plan implementation and validation steps',
+        'Document findings and recommendations'
+      ];
+    }
+
+    this.findings.nextSteps = nextSteps;
 
     console.log('✅ Simulated research completed');
   }
