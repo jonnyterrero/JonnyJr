@@ -1,31 +1,22 @@
-# Contributing to AI Research Repository
+# Contributing Guide
 
-Thank you for your interest in contributing to this AI research repository! This document provides guidelines for contributing to the project.
+Welcome! This repo is a personal assistant workspace that integrates:
+- Perplexity (web-grounded research)
+- OpenAI (synthesis, code, tests)
+- Cursor (IDE guidance via .cursor/rules)
+- GitHub Actions (automation)
 
-## 🚀 Quick Start
+## Getting Started
+1. Clone the repo and install tooling:
+   - Node 20+ and pnpm/npm/yarn
+   - Python 3.10+
+   - MATLAB (if using school templates)
 
-### Prerequisites
-- Node.js 18+
-- npm 8+
-- Git
-- GitHub CLI (for PR management)
-
-### Setup
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd ai-research-repo
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your API keys
-
-# Run quality checks
-npm run quality
-```
+2. Install dependencies:
+   ```bash
+   cd packages/ts && npm i
+   cd ../../packages/py && pip install -r requirements.txt
+   ```
 
 ## 📋 Development Workflow
 

@@ -1,0 +1,12 @@
+type:reminder:
+  - "docs/**"
+  - ".github/ISSUE_TEMPLATE/**"
+type:research:
+  - "docs/briefs/**"
+  - "docs/plans/**"
+area:typescript:
+  - "packages/ts/**"
+area:python:
+  - "packages/py/**"
+area:matlab:
+  - "school/MATLAB/**"
