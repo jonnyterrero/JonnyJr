@@ -17,28 +17,67 @@ interface ResearchFindings {
   insights: string[];
   nextSteps: string[];
   perplexityResults: string;
+  category: string;
+}
+
+interface CategoryMapping {
+  keywords: string[];
+  category: string;
 }
 
 class AIResearch {
   private findings: ResearchFindings;
   private topic: string;
   private apiKey: string;
+  private categoryMappings: CategoryMapping[];
 
   constructor(topic: string = "repo roadmap") {
     this.topic = topic;
     this.apiKey = process.env.PPLX_API_KEY || '';
+    this.categoryMappings = [
+      {
+        keywords: ['project', 'build', 'create', 'develop', 'app', 'website', 'software', 'tool'],
+        category: 'Personal Projects'
+      },
+      {
+        keywords: ['think', 'reflect', 'philosophy', 'meaning', 'purpose', 'life', 'personal', 'growth'],
+        category: 'Reflections & Questions'
+      },
+      {
+        keywords: ['math', 'mathematics', 'algorithm', 'code', 'programming', 'function', 'equation', 'calculate'],
+        category: 'Math & Coding'
+      },
+      {
+        keywords: ['science', 'physics', 'chemistry', 'biology', 'research', 'experiment', 'theory', 'hypothesis'],
+        category: 'Sciences'
+      }
+    ];
     this.findings = {
       date: new Date().toISOString().split('T')[0],
       topics: [],
       insights: [],
       nextSteps: [],
-      perplexityResults: ''
+      perplexityResults: '',
+      category: this.categorizeTopic(topic)
     };
+  }
+
+  private categorizeTopic(topic: string): string {
+    const lowerTopic = topic.toLowerCase();
+    
+    for (const mapping of this.categoryMappings) {
+      if (mapping.keywords.some(keyword => lowerTopic.includes(keyword))) {
+        return mapping.category;
+      }
+    }
+    
+    return 'General Research';
   }
 
   async conductResearch(): Promise<void> {
     console.log('🔬 Starting AI research...');
     console.log(`📝 Research topic: ${this.topic}`);
+    console.log(`📂 Category: ${this.findings.category}`);
     
     if (!this.apiKey) {
       console.warn('⚠️  PPLX_API_KEY not found. Using simulated research data.');
@@ -165,6 +204,9 @@ class AIResearch {
 
 ## Research Topic
 **${this.topic}**
+
+## Category
+**${this.findings.category}**
 
 ## Research Topics
 

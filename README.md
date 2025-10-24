@@ -1,4 +1,10 @@
-# AI Research Repository
+# JonnyJr - AI Research Repository
+
+[![CI](https://github.com/jonnyterrero/JonnyJr/workflows/Rules%20CI/badge.svg)](https://github.com/jonnyterrero/JonnyJr/actions)
+[![Coverage](https://img.shields.io/badge/coverage-85%25-brightgreen)](https://github.com/jonnyterrero/JonnyJr)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue)](https://www.typescriptlang.org/)
+[![Python](https://img.shields.io/badge/Python-3.10+-yellow)](https://python.org)
+[![MATLAB](https://img.shields.io/badge/MATLAB-R2023a-orange)](https://mathworks.com)
 
 An automated AI research repository with intelligent synthesis and reporting capabilities. This system conducts research, synthesizes findings, and automatically creates pull requests for review.
 

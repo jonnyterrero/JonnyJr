@@ -9,6 +9,7 @@
     "dev": "tsc --watch",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
+    "test:ci": "vitest run --coverage --reporter=json --outputFile=coverage/test-results.json",
     "lint": "eslint src tests --ext .ts",
     "lint:fix": "eslint src tests --ext .ts --fix",
     "typecheck": "tsc --noEmit",

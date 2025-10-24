@@ -1,0 +1,69 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        npm install
+        cd packages/ts && npm install
+        cd ../py && pip install -r requirements.txt
+    
+    - name: Run TypeScript tests with coverage
+      run: |
+        cd packages/ts
+        npm run test:ci
+    
+    - name: Run Python tests with coverage
+      run: |
+        cd packages/py
+        python -m pytest --cov=src --cov-report=json --cov-report=html
+    
+    - name: Generate coverage report
+      run: |
+        mkdir -p docs/coverage
+        # Copy TypeScript coverage
+        if [ -d "packages/ts/coverage" ]; then
+          cp -r packages/ts/coverage/* docs/coverage/ 2>/dev/null || true
+        fi
+        # Copy Python coverage
+        if [ -d "packages/py/htmlcov" ]; then
+          cp -r packages/py/htmlcov/* docs/coverage/ 2>/dev/null || true
+        fi
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: packages/ts/coverage/lcov.info,packages/py/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+    
+    - name: Commit coverage reports
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/coverage/
+        git diff --staged --quiet || git commit -m "Update coverage reports [skip ci]"
+        git push
