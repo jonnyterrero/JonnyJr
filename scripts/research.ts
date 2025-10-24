@@ -25,6 +25,14 @@ interface CategoryMapping {
   category: string;
 }
 
+interface PerplexityResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+}
+
 class AIResearch {
   private findings: ResearchFindings;
   private topic: string;
@@ -115,7 +123,7 @@ class AIResearch {
       throw new Error(`API request failed: ${res.status} ${res.statusText}`);
     }
 
-    const json = await res.json();
+    const json = await res.json() as PerplexityResponse;
     const text = json?.choices?.[0]?.message?.content ?? "No result";
     
     this.findings.perplexityResults = text;
