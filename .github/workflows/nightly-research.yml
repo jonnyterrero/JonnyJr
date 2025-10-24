@@ -9,7 +9,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: "20" }
-      - run: npm ci || npm i
+      - name: Install deps
+        run: |
+          npm install
+          cd packages/ts && npm install
       - name: Research & summarize
         env:
           PPLX_API_KEY: ${{ secrets.PPLX_API_KEY }}

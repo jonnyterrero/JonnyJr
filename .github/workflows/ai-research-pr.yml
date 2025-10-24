@@ -22,7 +22,9 @@ jobs:
         with: { node-version: "20" }
 
       - name: Install deps
-        run: npm ci || npm i
+        run: |
+          npm install
+          cd packages/ts && npm install
 
       - name: Research with Perplexity
         env:
