@@ -8,7 +8,7 @@ on:
       branch:
         description: "Target branch name"
         required: true
-        default: "ai/research-${{ github.run_id }}"
+        default: "ai/research"
 jobs:
   run:
     runs-on: ubuntu-latest
