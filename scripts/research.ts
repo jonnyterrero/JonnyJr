@@ -86,23 +86,28 @@ class AIResearch {
     console.log('🔬 Starting AI research...');
     console.log(`📝 Research topic: ${this.topic}`);
     console.log(`📂 Category: ${this.findings.category}`);
+    console.log(`🔑 API Key present: ${this.apiKey ? 'Yes' : 'No'}`);
     
     if (!this.apiKey) {
       console.warn('⚠️  PPLX_API_KEY not found. Using simulated research data.');
+      console.warn('💡 To use real Perplexity research, set PPLX_API_KEY environment variable.');
       await this.simulateResearch();
       return;
     }
 
+    console.log('🚀 Attempting real Perplexity API research...');
     try {
       await this.perplexityResearch();
     } catch (error) {
       console.error('❌ Perplexity API failed, falling back to simulation:', error);
+      console.error('🔍 Error details:', error.message);
       await this.simulateResearch();
     }
   }
 
   async perplexityResearch(): Promise<void> {
     console.log('🤖 Querying Perplexity API...');
+    console.log(`🔑 Using API key: ${this.apiKey.substring(0, 8)}...`);
     
     const researchPrompt = `You are a research assistant. Please provide a comprehensive research brief on the following topic:
 
@@ -123,6 +128,7 @@ Format your response as a structured research brief with clear sections.`;
       search_domain_filter: ["web"],
     };
 
+    console.log('📤 Sending request to Perplexity API...');
     const res = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
       headers: { 
@@ -132,19 +138,27 @@ Format your response as a structured research brief with clear sections.`;
       body: JSON.stringify(body)
     });
 
+    console.log(`📥 API Response Status: ${res.status} ${res.statusText}`);
+    
     if (!res.ok) {
-      throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+      const errorText = await res.text();
+      console.error('❌ API Error Response:', errorText);
+      throw new Error(`API request failed: ${res.status} ${res.statusText} - ${errorText}`);
     }
 
     const json = await res.json() as PerplexityResponse;
+    console.log('📋 API Response received, processing...');
+    
     const text = json?.choices?.[0]?.message?.content ?? "No result";
+    console.log(`📝 Response length: ${text.length} characters`);
     
     if (text === "No result" || text.trim().length < 50) {
+      console.error('❌ Insufficient response from API');
       throw new Error("Perplexity API returned insufficient results");
     }
     
     this.findings.perplexityResults = text;
-    console.log('✅ Perplexity research completed');
+    console.log('✅ Perplexity research completed successfully');
     
     // Process the results into structured data
     this.processPerplexityResults(text);
