@@ -226,27 +226,27 @@ Format your response as a structured research brief with clear sections.`;
     const topicLower = this.topic.toLowerCase();
     
     // Generate relevant research topics based on keywords
-    const researchTopics = [];
+    const researchTopics: ResearchTopic[] = [];
     
     if (topicLower.includes('biomaterial') || topicLower.includes('material')) {
       researchTopics.push(
         {
           title: 'Biomaterials for Medical Applications',
           description: 'Research into biocompatible materials for implants and medical devices',
-          priority: 'high',
-          status: 'in_progress'
+          priority: 'high' as const,
+          status: 'in_progress' as const
         },
         {
           title: 'Tissue Engineering Materials',
           description: 'Advanced materials for regenerative medicine and tissue scaffolds',
-          priority: 'high',
-          status: 'pending'
+          priority: 'high' as const,
+          status: 'pending' as const
         },
         {
           title: 'PRISMA Protocol Development',
           description: 'Systematic review methodology for biomaterials research',
-          priority: 'medium',
-          status: 'pending'
+          priority: 'medium' as const,
+          status: 'pending' as const
         }
       );
     } else if (topicLower.includes('math') || topicLower.includes('laplace') || topicLower.includes('equation')) {
@@ -254,14 +254,14 @@ Format your response as a structured research brief with clear sections.`;
         {
           title: 'Mathematical Analysis Techniques',
           description: 'Advanced methods for solving differential equations and transforms',
-          priority: 'high',
-          status: 'in_progress'
+          priority: 'high' as const,
+          status: 'in_progress' as const
         },
         {
           title: 'Numerical Methods',
           description: 'Computational approaches for mathematical problem solving',
-          priority: 'high',
-          status: 'pending'
+          priority: 'high' as const,
+          status: 'pending' as const
         }
       );
     } else if (topicLower.includes('project') || topicLower.includes('build') || topicLower.includes('develop')) {
@@ -269,14 +269,14 @@ Format your response as a structured research brief with clear sections.`;
         {
           title: 'Project Planning and Management',
           description: 'Best practices for project development and execution',
-          priority: 'high',
-          status: 'in_progress'
+          priority: 'high' as const,
+          status: 'in_progress' as const
         },
         {
           title: 'Technology Stack Selection',
           description: 'Choosing appropriate tools and frameworks for development',
-          priority: 'medium',
-          status: 'pending'
+          priority: 'medium' as const,
+          status: 'pending' as const
         }
       );
     } else {
@@ -285,14 +285,14 @@ Format your response as a structured research brief with clear sections.`;
         {
           title: this.topic,
           description: `Research analysis for: ${this.topic}`,
-          priority: 'high',
-          status: 'in_progress'
+          priority: 'high' as const,
+          status: 'in_progress' as const
         },
         {
           title: 'Related Research Areas',
           description: 'Exploring connected topics and methodologies',
-          priority: 'medium',
-          status: 'pending'
+          priority: 'medium' as const,
+          status: 'pending' as const
         }
       );
     }
