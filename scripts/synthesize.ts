@@ -10,6 +10,14 @@ interface SynthesisResult {
   testPlan: string;
 }
 
+interface OpenAIResponse {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+}
+
 class ResearchSynthesizer {
   private inputFile: string;
   private apiKey: string;
@@ -70,7 +78,7 @@ class ResearchSynthesizer {
         throw new Error(`OpenAI API request failed: ${res.status} ${res.statusText}`);
       }
 
-      const json = await res.json();
+      const json = await res.json() as OpenAIResponse;
       const text = json?.choices?.[0]?.message?.content ?? JSON.stringify(json, null, 2);
       
       console.log('✅ OpenAI synthesis completed');
