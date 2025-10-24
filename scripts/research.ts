@@ -2,6 +2,7 @@
 
 import { writeFileSync } from 'fs';
 import { execSync } from 'child_process';
+import fetch from "node-fetch";
 
 interface ResearchTopic {
   title: string;
@@ -15,66 +16,155 @@ interface ResearchFindings {
   topics: ResearchTopic[];
   insights: string[];
   nextSteps: string[];
+  perplexityResults: string;
 }
 
 class AIResearch {
   private findings: ResearchFindings;
+  private topic: string;
+  private apiKey: string;
 
-  constructor() {
+  constructor(topic: string = "repo roadmap") {
+    this.topic = topic;
+    this.apiKey = process.env.PPLX_API_KEY || '';
     this.findings = {
       date: new Date().toISOString().split('T')[0],
       topics: [],
       insights: [],
-      nextSteps: []
+      nextSteps: [],
+      perplexityResults: ''
     };
   }
 
   async conductResearch(): Promise<void> {
     console.log('🔬 Starting AI research...');
+    console.log(`📝 Research topic: ${this.topic}`);
+    
+    if (!this.apiKey) {
+      console.warn('⚠️  PPLX_API_KEY not found. Using simulated research data.');
+      await this.simulateResearch();
+      return;
+    }
+
+    try {
+      await this.perplexityResearch();
+    } catch (error) {
+      console.error('❌ Perplexity API failed, falling back to simulation:', error);
+      await this.simulateResearch();
+    }
+  }
+
+  async perplexityResearch(): Promise<void> {
+    console.log('🤖 Querying Perplexity API...');
+    
+    const body = {
+      model: "pplx-7b-chat",
+      messages: [{ role: "user", content: `Research this topic:\n${this.topic}` }],
+      search_domain_filter: ["web"],
+    };
+
+    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json", 
+        "Authorization": `Bearer ${this.apiKey}` 
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      throw new Error(`API request failed: ${res.status} ${res.statusText}`);
+    }
+
+    const json = await res.json();
+    const text = json?.choices?.[0]?.message?.content ?? "No result";
+    
+    this.findings.perplexityResults = text;
+    console.log('✅ Perplexity research completed');
+    
+    // Process the results into structured data
+    this.processPerplexityResults(text);
+  }
+
+  private processPerplexityResults(text: string): void {
+    // Extract insights from Perplexity response
+    const lines = text.split('\n').filter(line => line.trim());
+    
+    // Create research topics based on the response
+    this.findings.topics = [
+      {
+        title: this.topic,
+        description: `Research findings from Perplexity AI for: ${this.topic}`,
+        priority: 'high',
+        status: 'completed'
+      }
+    ];
+
+    // Extract key insights (simplified parsing)
+    this.findings.insights = lines
+      .filter(line => line.includes('•') || line.includes('-') || line.includes('*'))
+      .slice(0, 5)
+      .map(line => line.replace(/^[•\-\*]\s*/, '').trim());
+
+    // Generate next steps based on the research
+    this.findings.nextSteps = [
+      'Review and validate research findings',
+      'Implement recommendations from the research',
+      'Schedule follow-up research if needed',
+      'Document key insights for future reference'
+    ];
+  }
+
+  async simulateResearch(): Promise<void> {
+    console.log('🔄 Using simulated research data...');
     
     // Simulate research topics
     this.findings.topics = [
       {
+        title: this.topic,
+        description: `Simulated research for: ${this.topic}`,
+        priority: 'high',
+        status: 'in_progress'
+      },
+      {
         title: 'Large Language Model Optimization',
         description: 'Research into efficient training and inference methods',
         priority: 'high',
-        status: 'in_progress'
+        status: 'pending'
       },
       {
         title: 'Multimodal AI Integration',
         description: 'Exploring vision-language model capabilities',
         priority: 'medium',
         status: 'pending'
-      },
-      {
-        title: 'AI Safety and Alignment',
-        description: 'Investigating alignment techniques and safety measures',
-        priority: 'high',
-        status: 'pending'
       }
     ];
 
     // Generate insights
     this.findings.insights = [
-      'Transformer architectures continue to show superior performance in language tasks',
-      'Attention mechanisms can be optimized for better computational efficiency',
+      `Research focus: ${this.topic}`,
+      'Transformer architectures continue to show superior performance',
+      'Attention mechanisms can be optimized for better efficiency',
       'Multimodal models require careful balance between modalities',
-      'Safety training should be integrated from the beginning of model development'
+      'Safety training should be integrated from early development'
     ];
 
     // Define next steps
     this.findings.nextSteps = [
+      `Deep dive into ${this.topic} implementation`,
       'Implement attention optimization techniques',
       'Design multimodal training pipeline',
-      'Develop safety evaluation metrics',
-      'Create benchmarking framework'
+      'Develop safety evaluation metrics'
     ];
 
-    console.log('✅ Research completed');
+    console.log('✅ Simulated research completed');
   }
 
   generateReport(): string {
     const report = `# AI Research Report - ${this.findings.date}
+
+## Research Topic
+**${this.topic}**
 
 ## Research Topics
 
@@ -93,6 +183,12 @@ ${this.findings.insights.map(insight => `- ${insight}`).join('\n')}
 
 ${this.findings.nextSteps.map(step => `- ${step}`).join('\n')}
 
+${this.findings.perplexityResults ? `
+## Perplexity AI Research Results
+
+${this.findings.perplexityResults}
+` : ''}
+
 ---
 *Generated by AI Research System on ${new Date().toISOString()}*
 `;
@@ -110,7 +206,10 @@ ${this.findings.nextSteps.map(step => `- ${step}`).join('\n')}
 // Main execution
 async function main() {
   try {
-    const research = new AIResearch();
+    const topic = process.argv.slice(2).join(" ") || "repo roadmap";
+    console.log(`🚀 Starting research for topic: "${topic}"`);
+    
+    const research = new AIResearch(topic);
     await research.conductResearch();
     await research.saveReport();
     console.log('🎉 Research workflow completed successfully!');
