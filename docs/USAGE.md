@@ -12,6 +12,10 @@ Where things go:
 
 Privacy: keys live in `.env` locally and in GitHub Secrets for CI. No personal data committed.
 
+### Windows Quick Start
+- Run: `powershell -ExecutionPolicy Bypass -File .\scripts\bootstrap.ps1`
+- Then: `npm -w @jonnyjr/ts run test` and `pytest -q` (from venv).
+
 Example artifacts
 
 docs/briefs/sample-brief.md and docs/plans/sample-plan.md (use the samples from my previous message).
