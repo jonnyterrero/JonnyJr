@@ -1,0 +1,50 @@
+name: AI Research & PR
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "What should Perplexity research?"
+        required: true
+      branch:
+        description: "Target branch name"
+        required: true
+        default: "ai/research-${{ github.run_id }}"
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: Install deps
+        run: npm ci || npm i
+
+      - name: Research with Perplexity
+        env:
+          PPLX_API_KEY: ${{ secrets.PPLX_API_KEY }}
+        run: |
+          npx ts-node scripts/research.ts "${{ github.event.inputs.topic }}" > RESEARCH.md
+
+      - name: Synthesize with OpenAI
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          npx ts-node scripts/synthesize.ts RESEARCH.md > SYNTHESIS.md
+
+      - name: Create branch and commit
+        run: |
+          git switch -c "${{ github.event.inputs.branch }}"
+          git add RESEARCH.md SYNTHESIS.md
+          git -c user.name='ci' -c user.email='ci@users.noreply.github.com' commit -m "AI: research & synthesis for ${{ github.event.inputs.topic }}"
+          git push --set-upstream origin "${{ github.event.inputs.branch }}"
+
+      - name: Open PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create --title "AI: ${{ github.event.inputs.topic }}" --body-file SYNTHESIS.md --base main --head "${{ github.event.inputs.branch }}"

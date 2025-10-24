@@ -1,4 +1,34 @@
-# Code Style Rules
+# Global Coding Style
+
+## Languages
+- **Primary**: TypeScript (Node/Next.js), Python (scripts/ML), MATLAB (school/engineering), Markdown (docs)
+- **Prefer strongly typed TS with strict mode**
+- **Use**: `eslint:recommended`, `@typescript-eslint/recommended`
+
+## Formatting
+- **Prettier defaults** (printWidth 100)
+- **Filenames**: 
+  - kebab-case for TS/JS
+  - snake_case for Python
+  - UpperCamelCase.m for MATLAB
+
+## Commits (Conventional)
+- **Types**: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `ci:`, `perf:`
+- **Example**: `feat(assistant): add calendar summarizer`
+
+## Comments
+- **TS/JS**: JSDoc for exported funcs
+- **Python**: docstrings (NumPy style)
+- **MATLAB**: header block with purpose, inputs, outputs
+
+## Error Handling
+- **Never swallow errors**
+- **Wrap API calls** with `try/catch` and return structured failures `{ ok: false, error }`
+- **Log concise context**; redact secrets/PII
+
+## Security
+- **Never hardcode keys**. Load via env/Secrets
+- **Strip PII** from logs and artifacts
 
 ## TypeScript/JavaScript Style Guidelines
 
@@ -73,3 +103,105 @@ const user: any = { ... };
 - Provide meaningful error messages
 - Implement retry logic for network operations
 - Gracefully handle API rate limits
+
+## Python Guidelines
+
+### Code Style
+- Follow PEP 8 conventions
+- Use snake_case for variables and functions
+- Use PascalCase for classes
+- Use UPPER_SNAKE_CASE for constants
+
+### Documentation
+```python
+def process_data(input_data: List[str]) -> Dict[str, Any]:
+    """
+    Process input data and return structured results.
+    
+    Parameters
+    ----------
+    input_data : List[str]
+        List of input strings to process
+        
+    Returns
+    -------
+    Dict[str, Any]
+        Dictionary containing processed results
+        
+    Examples
+    --------
+    >>> data = ["item1", "item2"]
+    >>> result = process_data(data)
+    >>> print(result["count"])
+    2
+    """
+    # Implementation here
+    pass
+```
+
+## MATLAB Guidelines
+
+### File Structure
+```matlab
+function [output1, output2] = FunctionName(input1, input2)
+% FUNCTIONNAME Brief description of what the function does
+%
+% Purpose: Detailed description of the function's purpose
+% Inputs:  input1 - description of first input
+%          input2 - description of second input
+% Outputs: output1 - description of first output
+%          output2 - description of second output
+%
+% Author: Your Name
+% Date: YYYY-MM-DD
+%
+% Example:
+%   [result1, result2] = FunctionName(data1, data2);
+
+    % Implementation here
+    
+end
+```
+
+## Security Best Practices
+
+### Environment Variables
+```typescript
+// Good
+const apiKey = process.env.API_KEY;
+if (!apiKey) {
+  throw new Error('API_KEY environment variable is required');
+}
+
+// Bad
+const apiKey = 'hardcoded-key-here';
+```
+
+### Error Handling with Structured Responses
+```typescript
+interface ApiResponse<T> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+}
+
+async function apiCall(): Promise<ApiResponse<Data>> {
+  try {
+    const response = await fetch('/api/endpoint');
+    const data = await response.json();
+    return { ok: true, data };
+  } catch (error) {
+    console.error('API call failed:', error);
+    return { ok: false, error: 'Failed to fetch data' };
+  }
+}
+```
+
+### Logging Best Practices
+```typescript
+// Good - redact sensitive information
+console.log('User login attempt:', { userId: user.id, timestamp: new Date() });
+
+// Bad - exposes sensitive data
+console.log('User login:', { email: user.email, password: user.password });
+```

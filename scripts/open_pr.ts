@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+// naive example using the GH CLI would be simpler in a real pipeline.
+
 import { readFileSync, existsSync } from 'fs';
 import { execSync } from 'child_process';
 
