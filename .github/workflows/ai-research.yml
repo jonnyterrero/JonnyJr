@@ -1,0 +1,36 @@
+name: AI Research Workflow
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * 1-5'  # Run at 9 AM UTC, Monday to Friday
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run research script
+      run: npm run research
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Commit research results
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add RESEARCH.md
+        git commit -m "Update research findings" || exit 0
+        git push

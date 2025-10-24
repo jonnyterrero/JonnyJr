@@ -1,0 +1,41 @@
+name: Nightly Research Synthesis
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Run at 2 AM UTC daily
+
+jobs:
+  synthesize:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run synthesis script
+      run: npm run synthesize
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Archive nightly research
+      run: |
+        mkdir -p docs/nightly
+        cp RESEARCH.md docs/nightly/research-$(date +%Y-%m-%d).md
+        cp SYNTHESIS.md docs/nightly/synthesis-$(date +%Y-%m-%d).md
+        
+    - name: Commit synthesis results
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "Nightly synthesis: $(date +%Y-%m-%d)" || exit 0
+        git push
