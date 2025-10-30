@@ -41,6 +41,15 @@ jobs:
             --color FF9800 \
             --description "Reminder-related issues" \
             || echo "Label already exists or could not be created"
+      - name: Ensure category label exists
+        env:
+          GH_TOKEN: ${{ secrets.ACTIONS_PAT }}
+        run: |
+          CATEGORY="${{ github.event.inputs.category }}"
+          COLOR="6A5ACD" # slateblue
+          DESC="Workflow category label"
+          gh label create "$CATEGORY" --color "$COLOR" --description "$DESC" \
+            || echo "Category label '$CATEGORY' already exists or could not be created"
       - name: Create Reminder Issue
         env:
           GH_TOKEN: ${{ secrets.ACTIONS_PAT }}
