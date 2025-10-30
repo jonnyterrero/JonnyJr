@@ -274,7 +274,7 @@ Format your response as a structured research brief with clear sections.`;
           status: 'pending' as const
         }
       );
-    } else if (topicLower.includes('math') || topicLower.includes('laplace') || topicLower.includes('equation')) {
+    } else if (topicLower.includes('math') || topicLower.includes('laplace') || topicLower.includes('equation') || topicLower.includes('circuit') || topicLower.includes('rms')) {
       researchTopics.push(
         {
           title: 'Mathematical Analysis Techniques',
@@ -283,8 +283,8 @@ Format your response as a structured research brief with clear sections.`;
           status: 'in_progress' as const
         },
         {
-          title: 'Numerical Methods',
-          description: 'Computational approaches for mathematical problem solving',
+          title: 'Circuit Signals and RMS/Average',
+          description: 'Formulas and procedures for RMS, average, and form factor',
           priority: 'high' as const,
           status: 'pending' as const
         }
@@ -343,6 +343,14 @@ Format your response as a structured research brief with clear sections.`;
         'Understanding mathematical foundations is crucial for engineering applications',
         'Systematic approaches help organize complex mathematical problems'
       ];
+    } else if (topicLower.includes('circuit') || topicLower.includes('rms')) {
+      insights = [
+        'RMS: i_rms = sqrt( (1/T) ∫_0^T i^2(t) dt ); Average (rectified): i_avg = (1/T) ∫_0^T |i(t)| dt',
+        'Form factor = i_rms / i_avg; for piecewise signals, compute per interval and sum',
+        'For linear ramps i(t)=k t over 0..T0: ∫ i^2 dt = k^2 T0^3 / 3; ∫ |i| dt = k T0^2 / 2',
+        'For pulse trains: scale by duty cycle; RMS squares add over non-overlapping intervals',
+        'Check units (A, s) and use consistent T for period'
+      ];
     } else if (topicLower.includes('art') || topicLower.includes('drawing') || topicLower.includes('paint') || topicLower.includes('art style:')) {
       // Art-specific simulated insights
       const styleMatch = /art style:\s*([^,]+(?:,\s*[^,]+)*)/i.exec(this.topic);
@@ -388,6 +396,17 @@ Format your response as a structured research brief with clear sections.`;
         'Validate results through analytical and numerical methods',
         'Document solution methodology and assumptions',
         'Prepare comprehensive analysis and conclusions'
+      ];
+    } else if (topicLower.includes('circuit') || topicLower.includes('rms')) {
+      nextSteps = [
+        'Identify period T and piecewise expressions for i(t) over one full period',
+        'Compute ∫ i^2(t) dt per interval (use ramp/pulse formulas) and sum → RMS',
+        'Compute ∫ |i(t)| dt per interval and sum → Average (rectified)',
+        'Calculate form factor = RMS / Average; verify with dimensional checks',
+        'Cross-check with numerical approximation in Python/MATLAB',
+        'References: https://en.wikipedia.org/wiki/Root_mean_square',
+        'Piecewise integration refresher: https://www.khanacademy.org/math/calculus-1/integration-calc1',
+        'Signal examples: https://www.allaboutcircuits.com/textbook/alternating-current/chpt-2/rms-rectified-average-values/'
       ];
     } else if (topicLower.includes('art') || topicLower.includes('drawing') || topicLower.includes('paint') || topicLower.includes('art style:')) {
       const styleMatch2 = /art style:\s*([^,]+(?:,\s*[^,]+)*)/i.exec(this.topic);
