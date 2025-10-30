@@ -1,4 +1,8 @@
 name: Set Reminder
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
 
 on:
   workflow_dispatch:
@@ -25,9 +29,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Ensure label exists (type:reminder)
+        env:
+          GH_TOKEN: ${{ secrets.ACTIONS_PAT }}
+        run: |
+          # Create label if it doesn't exist
+          gh label create "type:reminder" \
+            --color FF9800 \
+            --description "Reminder-related issues" \
+            || echo "Label already exists or could not be created"
       - name: Create Reminder Issue
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.ACTIONS_PAT }}
         run: |
           # Create the reminder issue
           gh issue create \
