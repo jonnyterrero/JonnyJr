@@ -57,6 +57,7 @@ class ResearchSynthesizer {
 
 # Direct Answers
 - Answer the user's question(s) in plain language (3-7 bullets max)
+- Include at least 5 concrete inspiration links (images or galleries) relevant to the prompt
 
 # Next Actions
 - A short checklist of concrete steps the user can take next (5-8 items)
@@ -70,7 +71,10 @@ class ResearchSynthesizer {
 # References (optional)
 - Up to 5 short, high-signal references, if present in research
 
-Do NOT describe the repo structure or general capabilities. Focus on answering the user's prompt directly.
+Rules:
+- Do NOT describe repo structure.
+- Prefer links to image search results, Pinterest/Behance collections, museum pages, or artist portfolios.
+- If the prompt references an artist, include a short note on style cues to emulate.
 
 ---\n${this.input}`
         }
@@ -104,22 +108,45 @@ Do NOT describe the repo structure or general capabilities. Focus on answering t
 
   private generateSimulatedSynthesis(): string {
     console.log('🔄 Using simulated synthesis...');
-    
+
+    const styleMatch = /Art style:\s*([^,]+(?:,\s*[^,]+)*)/i.exec(this.input);
+    const style = styleMatch ? styleMatch[1].trim() : 'paper, colored pencils, freehand';
+    const promptMatch = /Prompt:\s*([^\n]+)/i.exec(this.input);
+    const promptText = promptMatch ? promptMatch[1].trim() : 'abstract drawing with vibrant colors';
+    const q = encodeURIComponent(`${style} ${promptText}`);
+
     return `# Direct Answers
-- This is a simulated synthesis. Provide specific, actionable guidance based on the research input.
-- Summarize the most relevant points to answer the user's prompt directly.
+- Use a saturated palette (cerise, turquoise, canary, violet) with one dark anchoring tone.
+- Build layers: light base > mid-tones > selective burnish with white for glow.
+- Use dynamic, imperfect linework and asymmetry to convey energy.
+- Keep 3–4 color families; reserve black sparingly for emphasis.
+- Inspiration links: 
+  - Google Images: https://www.google.com/search?q=${q}
+  - Pinterest: https://www.pinterest.com/search/pins/?q=${q}
+  - Behance projects: https://www.behance.net/search/projects?search=${q}
+  - Color palettes: https://color.adobe.com/explore
+  - Composition ideas: https://www.pinterest.com/search/pins/?q=${encodeURIComponent('abstract composition thumbnails')}
 
 # Next Actions
-- List 5–8 concrete, short steps the user can take.
+- Sketch 3 thumbnails (radial, diagonal, grid-breaker) in 5 minutes each.
+- Choose 3–4 core colors; create a 2x3 swatch grid and test blends.
+- Lightly block shapes; reserve highlights; avoid heavy outlines early.
+- Layer mid-tones; deepen contrast; add 5–7 energetic lines to imply motion.
+- Burnish selective highlights; add one accent color (≤5% area) for focal pop.
+- Compare against references; tweak palette and contrast.
 
 # Materials (if relevant)
-- List only what’s needed to proceed.
+- Smooth paper (Bristol or mixed media), colored pencils (incl. white), kneaded eraser, sharpener, ruler.
 
 # Risks & Mitigations
-- Up to 3 bullets with succinct mitigations.
+- Overworking paper → Use light pressure; burnish only at end.
+- Muddy blends → Keep color families limited; test on scraps first.
+- Flat composition → Push contrast; add directional lines and focal accent.
 
 # References
-- Include up to 5 high-signal references if present in research.`
+- Google Images query above
+- Pinterest board query above
+- Behance projects query above`;
   }
 
   async saveSynthesis(output: string): Promise<void> {

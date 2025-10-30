@@ -343,6 +343,21 @@ Format your response as a structured research brief with clear sections.`;
         'Understanding mathematical foundations is crucial for engineering applications',
         'Systematic approaches help organize complex mathematical problems'
       ];
+    } else if (topicLower.includes('art') || topicLower.includes('drawing') || topicLower.includes('paint') || topicLower.includes('art style:')) {
+      // Art-specific simulated insights
+      const styleMatch = /art style:\s*([^,]+(?:,\s*[^,]+)*)/i.exec(this.topic);
+      const style = styleMatch ? styleMatch[1].trim() : 'paper, colored pencils, freehand';
+      const promptText = this.topic.replace(/.*prompt:\s*/i, '').trim();
+      const query = encodeURIComponent(`${style} ${promptText}`);
+      insights = [
+        'Favor a vibrant palette (cerise, turquoise, canary, violet) with high-contrast accents',
+        'Layer colored pencils from light to dark; burnish highlights with white pencil',
+        'Use asymmetric composition and dynamic linework to convey energy and rhythm',
+        'Limit color families to 3–4 for cohesion; reserve black sparingly for emphasis',
+        `Reference searches: https://www.google.com/search?q=${query}`,
+        `Pinterest board ideas: https://www.pinterest.com/search/pins/?q=${query}`,
+        `Behance inspiration: https://www.behance.net/search/projects?search=${query}`
+      ];
     } else {
       insights = [
         `Key research focus: ${this.topic}`,
@@ -373,6 +388,21 @@ Format your response as a structured research brief with clear sections.`;
         'Validate results through analytical and numerical methods',
         'Document solution methodology and assumptions',
         'Prepare comprehensive analysis and conclusions'
+      ];
+    } else if (topicLower.includes('art') || topicLower.includes('drawing') || topicLower.includes('paint') || topicLower.includes('art style:')) {
+      const styleMatch2 = /art style:\s*([^,]+(?:,\s*[^,]+)*)/i.exec(this.topic);
+      const style2 = styleMatch2 ? styleMatch2[1].trim() : 'paper, colored pencils, freehand';
+      const promptText2 = this.topic.replace(/.*prompt:\s*/i, '').trim();
+      const q = encodeURIComponent(`${style2} ${promptText2}`);
+      nextSteps = [
+        'Sketch 3 thumbnails (different compositions: radial, diagonal, grid-breaker)',
+        'Choose 3–4 colors; make a 2x3 swatch grid and test blends',
+        'Block big shapes lightly; reserve highlights; avoid heavy outlines early',
+        'Layer mid-tones, then deepen contrast; add 5–7 high-energy lines for motion',
+        'Add one unexpected accent color (<=5% area) to create a focal pop',
+        `Open refs: Google Images → https://www.google.com/search?q=${q}`,
+        `Scan inspiration: Pinterest → https://www.pinterest.com/search/pins/?q=${q}`,
+        `Color harmony tool: https://color.adobe.com/create/color-wheel`
       ];
     } else {
       nextSteps = [
