@@ -185,20 +185,34 @@ Rules:
 
     // GENERIC FALLBACK
     return `# Direct Answers
-- Summarize the key points from the research to directly answer the prompt.
-- Provide 3–5 concise, actionable recommendations.
+- Define the MVP for "${(this.input.match(/\*\*(.+)\*\*/)?.[1] || 'your project')}" (what it must do in week 1).
+- Pick and lock the stack (TypeScript scripts + GitHub Actions already in this repo).
+- Use existing workflows as automation (research/synthesis, art, homework, project).
+- Track work in PRs; each feature = branch + PR with a short checklist.
+- Ship something end-to-end today (one workflow from input → PR).
 
 # Next Actions
-- List 5–8 concrete, short steps to move forward.
+- Create issues: "MVP scope", "First user prompt flow", "Error handling & logging".
+- Wire environment: set OPENAI_API_KEY and PPLX_API_KEY locally and in repo Secrets.
+- Run locally: `npm run research` then `npm run synthesize`; review outputs.
+- Trigger CI: run Personal Project Help with a concrete topic; review PR.
+- Add guardrails: update prompts to enforce concise Direct Answers and Next Actions.
+- Add test: minimal unit test for `scripts/*.ts` happy-path.
 
 # Materials (if relevant)
-- List only what’s needed to proceed.
+- Node 20, npm, your API keys, GitHub PAT with repo write.
 
 # Risks & Mitigations (optional)
-- Up to 3 bullets with succinct mitigations.
+- Vague prompts → Add input templates in docs/briefs; assert required fields.
+- CI push failures → Ensure ACTIONS_PAT repo Secret with repo:write + SSO enabled.
+- Noisy outputs → Tighten prompts; add post-process filters for sections.
 
 # References (optional)
-- Up to 5 high-signal references if present in research.`
+- Repo root: https://github.com/jonnyterrero/JonnyJr
+- Actions (workflows): .github/workflows/
+  - art-inspiration.yml, homework-help.yml, project-assistant.yml
+- Scripts: scripts/research.ts, scripts/synthesize.ts
+- Secrets setup: Settings → Secrets and variables → Actions`;
   }
 
   async saveSynthesis(output: string): Promise<void> {
