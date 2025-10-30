@@ -33,6 +33,17 @@ interface PerplexityResponse {
   }>;
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
 class AIResearch {
   private findings: ResearchFindings;
   private topic: string;
@@ -100,7 +111,7 @@ class AIResearch {
       await this.perplexityResearch();
     } catch (error) {
       console.error('❌ Perplexity API failed, falling back to simulation:', error);
-      console.error('🔍 Error details:', error.message);
+      console.error('🔍 Error details:', getErrorMessage(error));
       await this.simulateResearch();
     }
   }
