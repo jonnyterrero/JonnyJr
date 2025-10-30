@@ -109,13 +109,17 @@ Rules:
   private generateSimulatedSynthesis(): string {
     console.log('🔄 Using simulated synthesis...');
 
-    const styleMatch = /Art style:\s*([^,]+(?:,\s*[^,]+)*)/i.exec(this.input);
-    const style = styleMatch ? styleMatch[1].trim() : 'paper, colored pencils, freehand';
-    const promptMatch = /Prompt:\s*([^\n]+)/i.exec(this.input);
-    const promptText = promptMatch ? promptMatch[1].trim() : 'abstract drawing with vibrant colors';
-    const q = encodeURIComponent(`${style} ${promptText}`);
+    const lower = this.input.toLowerCase();
 
-    return `# Direct Answers
+    // ART CONTEXT
+    if (/art style:/i.test(this.input)) {
+      const styleMatch = /Art style:\s*([^,]+(?:,\s*[^,]+)*)/i.exec(this.input);
+      const style = styleMatch ? styleMatch[1].trim() : 'paper, colored pencils, freehand';
+      const promptMatch = /Prompt:\s*([^\n]+)/i.exec(this.input);
+      const promptText = promptMatch ? promptMatch[1].trim() : 'abstract drawing with vibrant colors';
+      const q = encodeURIComponent(`${style} ${promptText}`);
+
+      return `# Direct Answers
 - Use a saturated palette (cerise, turquoise, canary, violet) with one dark anchoring tone.
 - Build layers: light base > mid-tones > selective burnish with white for glow.
 - Use dynamic, imperfect linework and asymmetry to convey energy.
@@ -147,6 +151,54 @@ Rules:
 - Google Images query above
 - Pinterest board query above
 - Behance projects query above`;
+    }
+
+    // CIRCUITS / HOMEWORK CONTEXT
+    if (lower.includes('circuit') || lower.includes('rms') || lower.includes('homework')) {
+      return `# Direct Answers
+- RMS: i_rms = sqrt((1/T) ∫_0^T i^2(t) dt). Average (rectified): i_avg = (1/T) ∫_0^T |i(t)| dt.
+- Form factor = i_rms / i_avg.
+- For ramp i(t)=k t over 0..T0: ∫ i^2 dt = k^2 T0^3 / 3; ∫ |i| dt = k T0^2 / 2.
+- For pulses: integrate per interval, sum contributions, then normalize by T.
+- Check units and use one full period T.
+
+# Next Actions
+- Identify one full period T and write piecewise i(t) over [0, T].
+- Compute ∫ i^2(t) dt per interval; sum → i_rms = sqrt((1/T) total).
+- Compute ∫ |i(t)| dt per interval; sum → i_avg = (1/T) total.
+- Compute form factor = i_rms / i_avg; sanity-check extremes and dimensions.
+- Optionally verify numerically with a small script (Python/MATLAB).
+
+# Materials (if relevant)
+- Paper, calculator or CAS, or Python/MATLAB.
+
+# Risks & Mitigations
+- Wrong period → Sketch waveform and mark T.
+- Missing absolute for average → Use |i(t)|.
+- Algebra slips → Keep symbols until final; then plug numbers.
+
+# References
+- RMS: https://en.wikipedia.org/wiki/Root_mean_square
+- Average/rectified values: https://www.allaboutcircuits.com/textbook/alternating-current/chpt-2/rms-rectified-average-values/
+- Piecewise integration refresher: https://www.khanacademy.org/math/calculus-1/integration-calc1`;
+    }
+
+    // GENERIC FALLBACK
+    return `# Direct Answers
+- Summarize the key points from the research to directly answer the prompt.
+- Provide 3–5 concise, actionable recommendations.
+
+# Next Actions
+- List 5–8 concrete, short steps to move forward.
+
+# Materials (if relevant)
+- List only what’s needed to proceed.
+
+# Risks & Mitigations (optional)
+- Up to 3 bullets with succinct mitigations.
+
+# References (optional)
+- Up to 5 high-signal references if present in research.`
   }
 
   async saveSynthesis(output: string): Promise<void> {
