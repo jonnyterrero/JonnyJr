@@ -194,10 +194,10 @@ Rules:
 # Next Actions
 - Create issues: "MVP scope", "First user prompt flow", "Error handling & logging".
 - Wire environment: set OPENAI_API_KEY and PPLX_API_KEY locally and in repo Secrets.
-- Run locally: `npm run research` then `npm run synthesize`; review outputs.
+- Run locally: "npm run research" then "npm run synthesize"; review outputs.
 - Trigger CI: run Personal Project Help with a concrete topic; review PR.
 - Add guardrails: update prompts to enforce concise Direct Answers and Next Actions.
-- Add test: minimal unit test for `scripts/*.ts` happy-path.
+- Add test: minimal unit test for "scripts/*.ts" happy-path.
 
 # Materials (if relevant)
 - Node 20, npm, your API keys, GitHub PAT with repo write.
