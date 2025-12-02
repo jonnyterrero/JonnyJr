@@ -133,16 +133,19 @@ jobs:
           BRANCH_NAME="workflow/homework-help"
           echo "📦 Using branch: $BRANCH_NAME"
           
-          # Fetch to check if branch exists remotely
-          git fetch origin "$BRANCH_NAME" 2>/dev/null || true
+          # Fetch all branches
+          git fetch origin || true
           
-          # Checkout existing branch or create new one
+          # Remove local branch if it exists (clean slate)
+          git branch -D "$BRANCH_NAME" 2>/dev/null || true
+          
+          # Checkout existing remote branch or create new one
           if git show-ref --verify --quiet refs/remotes/origin/"$BRANCH_NAME"; then
             echo "✅ Branch exists remotely, checking out..."
-            git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+            git checkout -b "$BRANCH_NAME" "origin/$BRANCH_NAME" || git checkout "$BRANCH_NAME"
           else
-            echo "🆕 Creating new branch..."
-            git checkout -b "$BRANCH_NAME"
+            echo "🆕 Creating new branch from main..."
+            git checkout -b "$BRANCH_NAME" main || git checkout -b "$BRANCH_NAME"
           fi
           
           # Add and commit changes
