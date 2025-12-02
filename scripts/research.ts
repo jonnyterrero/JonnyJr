@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-import { writeFileSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { execSync } from 'child_process';
+import { join } from 'path';
 import fetch from "node-fetch";
 
 interface ResearchTopic {
@@ -33,6 +34,40 @@ interface PerplexityResponse {
   }>;
 }
 
+interface CourseInfo {
+  name: string;
+  subject: string;
+  credits: number;
+  current?: boolean;
+  upcoming?: boolean;
+  term: string;
+  category: string;
+  keywords: string[];
+  commonTopics: string[];
+  textbooks: string[];
+  tools: string[];
+  typicalAssignments: string[];
+}
+
+interface CoursesConfig {
+  courses: Record<string, CourseInfo>;
+  selfStudy: Record<string, {
+    topics: string[];
+    category: string;
+  }>;
+}
+
+interface Resource {
+  title: string;
+  url: string;
+  description: string;
+}
+
+interface ResourcesConfig {
+  resources: Record<string, Record<string, Resource[]>>;
+  courseMappings: Record<string, string[]>;
+}
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -49,10 +84,19 @@ class AIResearch {
   private topic: string;
   private apiKey: string;
   private categoryMappings: CategoryMapping[];
+  private coursesConfig: CoursesConfig | null = null;
+  private detectedCourse: CourseInfo | null = null;
+  private resourcesConfig: ResourcesConfig | null = null;
+  private relevantResources: Resource[] = [];
 
   constructor(topic: string = "repo roadmap") {
     this.topic = topic;
     this.apiKey = process.env.PPLX_API_KEY || '';
+    this.loadCoursesConfig();
+    this.loadResourcesConfig();
+    this.detectCourse();
+    this.loadRelevantResources();
+    
     this.categoryMappings = [
       {
         keywords: ['project', 'build', 'create', 'develop', 'app', 'website', 'software', 'tool'],
@@ -71,6 +115,17 @@ class AIResearch {
         category: 'Sciences'
       }
     ];
+    
+    // Add course-specific keywords to category mappings
+    if (this.coursesConfig) {
+      for (const [code, course] of Object.entries(this.coursesConfig.courses)) {
+        const existingMapping = this.categoryMappings.find(m => m.category === course.category);
+        if (existingMapping) {
+          existingMapping.keywords.push(...course.keywords.map(k => k.toLowerCase()));
+        }
+      }
+    }
+    
     this.findings = {
       date: new Date().toISOString().split('T')[0],
       topics: [],
@@ -79,6 +134,162 @@ class AIResearch {
       perplexityResults: '',
       category: this.categorizeTopic(topic)
     };
+  }
+
+  private loadCoursesConfig(): void {
+    try {
+      // Try multiple paths to find courses.json
+      const possiblePaths = [
+        join(process.cwd(), 'scripts', 'courses.json'),
+        join(__dirname, 'courses.json'),
+        join(process.cwd(), 'courses.json')
+      ];
+      
+      let configPath: string | null = null;
+      for (const path of possiblePaths) {
+        if (existsSync(path)) {
+          configPath = path;
+          break;
+        }
+      }
+      
+      if (configPath) {
+        const configContent = readFileSync(configPath, 'utf-8');
+        this.coursesConfig = JSON.parse(configContent) as CoursesConfig;
+        console.log(`📚 Loaded course configuration (${Object.keys(this.coursesConfig.courses).length} courses)`);
+      } else {
+        console.log('⚠️  courses.json not found, using default mappings');
+      }
+    } catch (error) {
+      console.warn('⚠️  Failed to load courses.json:', getErrorMessage(error));
+    }
+  }
+
+  private loadResourcesConfig(): void {
+    try {
+      const possiblePaths = [
+        join(process.cwd(), 'scripts', 'resources.json'),
+        join(process.cwd(), 'resources.json')
+      ];
+      
+      let configPath: string | null = null;
+      for (const path of possiblePaths) {
+        if (existsSync(path)) {
+          configPath = path;
+          break;
+        }
+      }
+      
+      if (configPath) {
+        const configContent = readFileSync(configPath, 'utf-8');
+        this.resourcesConfig = JSON.parse(configContent) as ResourcesConfig;
+        console.log('📚 Loaded resources configuration');
+      }
+    } catch (error) {
+      console.warn('⚠️  Failed to load resources.json:', getErrorMessage(error));
+    }
+  }
+
+  private detectCourse(): void {
+    if (!this.coursesConfig) return;
+    
+    const topicUpper = this.topic.toUpperCase();
+    
+    // Try to match course codes (e.g., MAP2302, BME3100C, PHY2049)
+    for (const [code, courseInfo] of Object.entries(this.coursesConfig.courses)) {
+      if (topicUpper.includes(code) || topicUpper.includes(code.replace(/\d+/g, ''))) {
+        this.detectedCourse = courseInfo;
+        console.log(`🎓 Detected course: ${code} - ${courseInfo.name}`);
+        break;
+      }
+    }
+    
+    // If no direct match, try keyword matching
+    if (!this.detectedCourse) {
+      const topicLower = this.topic.toLowerCase();
+      for (const [code, courseInfo] of Object.entries(this.coursesConfig.courses)) {
+        const matchedKeywords = courseInfo.keywords.filter(kw => 
+          topicLower.includes(kw.toLowerCase())
+        );
+        if (matchedKeywords.length >= 2) {
+          this.detectedCourse = courseInfo;
+          console.log(`🎓 Detected course by keywords: ${code} - ${courseInfo.name}`);
+          break;
+        }
+      }
+    }
+    
+    if (this.detectedCourse) {
+      this.findings.category = this.detectedCourse.category;
+    }
+  }
+
+  private loadRelevantResources(): void {
+    if (!this.resourcesConfig) return;
+    
+    const resources: Resource[] = [];
+    const topicLower = this.topic.toLowerCase();
+    
+    // Load course-specific resources if course detected
+    if (this.detectedCourse) {
+      const courseCode = Object.keys(this.coursesConfig?.courses || {}).find(
+        code => this.coursesConfig?.courses[code] === this.detectedCourse
+      );
+      
+      if (courseCode && this.resourcesConfig.courseMappings[courseCode]) {
+        for (const mapping of this.resourcesConfig.courseMappings[courseCode]) {
+          const [category, subcategory] = mapping.split('.');
+          const categoryResources = this.resourcesConfig.resources[category];
+          if (categoryResources && categoryResources[subcategory]) {
+            resources.push(...categoryResources[subcategory]);
+          }
+        }
+      }
+    }
+    
+    // Also load topic-based resources
+    const topicKeywords = [
+      { keywords: ['laplace', 'transform'], paths: ['mathematics.laplace'] },
+      { keywords: ['integral', 'integration'], paths: ['mathematics.integration'] },
+      { keywords: ['rms', 'root mean square'], paths: ['mathematics.rms'] },
+      { keywords: ['circuit', 'electric'], paths: ['physics.circuits', 'bioengineering.circuits'] },
+      { keywords: ['biomaterial'], paths: ['bioengineering.biomaterials'] },
+      { keywords: ['physiology', 'organ'], paths: ['bioengineering.physiology'] },
+      { keywords: ['organic', 'chemistry'], paths: ['chemistry.organic'] },
+      { keywords: ['matlab'], paths: ['programming.matlab'] },
+      { keywords: ['python'], paths: ['programming.python'] },
+      { keywords: ['art', 'drawing', 'paint'], paths: ['art.inspiration'] }
+    ];
+    
+    for (const { keywords, paths } of topicKeywords) {
+      if (keywords.some(kw => topicLower.includes(kw))) {
+        for (const path of paths) {
+          const [category, subcategory] = path.split('.');
+          const categoryResources = this.resourcesConfig.resources[category];
+          if (categoryResources && categoryResources[subcategory]) {
+            resources.push(...categoryResources[subcategory]);
+          }
+        }
+      }
+    }
+    
+    // Add general tools and reference
+    if (this.resourcesConfig.resources.tools) {
+      resources.push(...(this.resourcesConfig.resources.tools.calculators || []).slice(0, 2));
+      resources.push(...(this.resourcesConfig.resources.tools.reference || []).slice(0, 2));
+    }
+    
+    // Remove duplicates based on URL
+    const seenUrls = new Set<string>();
+    this.relevantResources = resources.filter(resource => {
+      if (seenUrls.has(resource.url)) return false;
+      seenUrls.add(resource.url);
+      return true;
+    });
+    
+    if (this.relevantResources.length > 0) {
+      console.log(`🔗 Loaded ${this.relevantResources.length} relevant resources`);
+    }
   }
 
   private categorizeTopic(topic: string): string {
@@ -97,21 +308,34 @@ class AIResearch {
     console.log('🔬 Starting AI research...');
     console.log(`📝 Research topic: ${this.topic}`);
     console.log(`📂 Category: ${this.findings.category}`);
-    console.log(`🔑 API Key present: ${this.apiKey ? 'Yes' : 'No'}`);
+    console.log(`🔑 API Key present: ${this.apiKey ? 'Yes ✅' : 'No ❌'}`);
+    
+    if (this.detectedCourse) {
+      console.log(`🎓 Course detected: ${this.detectedCourse.name}`);
+    }
+    
+    if (this.relevantResources.length > 0) {
+      console.log(`📚 Loaded ${this.relevantResources.length} relevant resources`);
+    }
     
     if (!this.apiKey) {
       console.warn('⚠️  PPLX_API_KEY not found. Using simulated research data.');
       console.warn('💡 To use real Perplexity research, set PPLX_API_KEY environment variable.');
+      console.log('🔄 Generating simulated research...');
       await this.simulateResearch();
       return;
     }
 
     console.log('🚀 Attempting real Perplexity API research...');
+    console.log('⏳ This may take 30-60 seconds...');
+    
     try {
       await this.perplexityResearch();
+      console.log('✅ Research completed successfully');
     } catch (error) {
-      console.error('❌ Perplexity API failed, falling back to simulation:', error);
+      console.error('❌ Perplexity API failed, falling back to simulation');
       console.error('🔍 Error details:', getErrorMessage(error));
+      console.log('🔄 Generating fallback research...');
       await this.simulateResearch();
     }
   }
@@ -120,18 +344,89 @@ class AIResearch {
     console.log('🤖 Querying Perplexity API...');
     console.log(`🔑 Using API key: ${this.apiKey.substring(0, 8)}...`);
     
-    const researchPrompt = `You are a research assistant. Please provide a comprehensive research brief on the following topic:
+    // Build user context
+    const userContext = `You are a research assistant helping a dedicated bioengineering student who:
+- Major: Bioengineering (focus on medical devices, biomaterials, tissue engineering)
+- Minors: Chemistry and Computer Science
+- Learning Style: Self-directed, project-oriented, religiously self-studies alongside coursework
+- Active Projects: Multiple personal projects (see GitHub workspace)
+- Current Focus: Summer 2025 - MAP2302 (Differential Equations) and PHY2049 (Physics II)
+- Upcoming: Fall 2025 - Multiple BME courses including Biomaterials, Physiology, Circuits, Healthcare Engineering`;
 
-Topic: ${this.topic}
+    let researchPrompt = `${userContext}\n\nPlease provide a comprehensive, practical research brief on the following topic:
 
-Please provide:
-1. Key findings and insights (3-5 bullet points)
-2. Important sources and references (3-5 reputable sources)
-3. Research gaps and opportunities
-4. Practical applications or implications
-5. Next steps for further research
+**Research Topic:** ${this.topic}
 
-Format your response as a structured research brief with clear sections.`;
+**Your Task:** Provide actionable research that helps this student understand, solve problems, and complete assignments effectively.`;
+
+    // Add course-specific context if detected
+    if (this.detectedCourse) {
+      researchPrompt += `\n\n**Course Context:**
+- Course: ${this.detectedCourse.name} (${this.detectedCourse.subject})
+- Credits: ${this.detectedCourse.credits}
+- Term: ${this.detectedCourse.term}
+- Status: ${this.detectedCourse.current ? 'Currently Enrolled' : this.detectedCourse.upcoming ? 'Upcoming' : 'Past Course'}
+- Common Topics Covered: ${this.detectedCourse.commonTopics.join(', ')}
+- Recommended Textbooks: ${this.detectedCourse.textbooks.join(', ')}
+- Tools Used: ${this.detectedCourse.tools.join(', ')}
+- Typical Assignments: ${this.detectedCourse.typicalAssignments.join(', ')}`;
+    }
+
+    // Add relevant resources
+    if (this.relevantResources.length > 0) {
+      researchPrompt += `\n\n**Relevant Learning Resources Available:**
+${this.relevantResources.slice(0, 10).map(r => `- **${r.title}**: ${r.url}\n  ${r.description}`).join('\n')}
+
+You may reference these resources in your response.`;
+    }
+
+    researchPrompt += `\n\n**Required Response Format:**
+
+Please structure your response with these sections:
+
+1. **Executive Summary** (2-3 sentences)
+   - Quick overview of what this topic involves
+   - Why it's relevant to a bioengineering student
+
+2. **Key Concepts & Theory** (5-7 bullet points)
+   - Fundamental principles and definitions
+   - Core equations, formulas, or concepts
+   - Relationships between concepts
+   - Focus on practical understanding, not just theory
+
+3. **Step-by-Step Problem-Solving Approach**
+   - Methodical approach to solving problems in this area
+   - Break down complex problems into manageable steps
+   - Include example problem-solving strategies
+
+4. **Common Mistakes & How to Avoid Them**
+   - Typical errors students make
+   - How to recognize and prevent them
+   - Verification strategies
+
+5. **Practical Applications & Examples**
+   - Real-world applications in bioengineering/medicine
+   - Connection to other courses (chemistry, CS, physics)
+   - If applicable: connection to medical devices or healthcare
+
+6. **Recommended Resources & Next Steps**
+   - Best textbooks or sources for deeper learning
+   - Practice problems or exercises
+   - Study strategies specific to this topic
+   - Related topics to explore next
+
+7. **Quick Reference** (if applicable)
+   - Key formulas in one place
+   - Important constants or values
+   - Cheat sheet style summary
+
+**Guidelines:**
+- Be concise but comprehensive
+- Use clear, accessible language
+- Include concrete examples where possible
+- Focus on practical application, not just theory
+- Connect concepts to bioengineering when relevant
+- Provide actionable steps the student can follow immediately`;
 
     const body = {
       model: "pplx-7b-chat",
@@ -249,6 +544,12 @@ Format your response as a structured research brief with clear sections.`;
     
     // Create meaningful research topics based on the input
     const topicLower = this.topic.toLowerCase();
+    
+    // If we detected a course, use course-specific knowledge
+    if (this.detectedCourse) {
+      this.generateCourseSpecificResearch();
+      return;
+    }
     
     // Generate relevant research topics based on keywords
     const researchTopics: ResearchTopic[] = [];
@@ -438,6 +739,80 @@ Format your response as a structured research brief with clear sections.`;
     console.log('✅ Simulated research completed');
   }
 
+  private generateCourseSpecificResearch(): void {
+    if (!this.detectedCourse) return;
+    
+    const course = this.detectedCourse;
+    const topicLower = this.topic.toLowerCase();
+    
+    // Generate research topics based on course
+    this.findings.topics = [
+      {
+        title: this.topic,
+        description: `Homework assignment for ${course.name}`,
+        priority: 'high' as const,
+        status: 'in_progress' as const
+      },
+      ...course.commonTopics.slice(0, 2).map(topic => ({
+        title: topic,
+        description: `Related topic in ${course.name}`,
+        priority: 'medium' as const,
+        status: 'pending' as const
+      }))
+    ];
+
+    // Generate course-specific insights
+    let insights: string[] = [];
+    
+    if (course.subject === 'Bioengineering') {
+      insights = [
+        `Focus on practical applications in ${course.name.toLowerCase()}`,
+        `Consider both biological and engineering perspectives`,
+        `Review relevant regulations and standards if applicable`,
+        `Use ${course.tools.join(' or ')} for analysis and verification`,
+        `Consult ${course.textbooks[0] || 'course textbook'} for theoretical background`
+      ];
+    } else if (course.subject === 'Mathematics') {
+      insights = [
+        `Show all steps clearly for ${course.name.toLowerCase()}`,
+        `Verify solutions using ${course.tools.join(' or ')}`,
+        `Pay attention to boundary conditions and initial values`,
+        `Check units and dimensional consistency`,
+        `Reference: ${course.textbooks[0] || 'course textbook'}`
+      ];
+    } else if (course.subject === 'Physics') {
+      insights = [
+        `Apply fundamental principles from ${course.name.toLowerCase()}`,
+        `Draw clear diagrams and free body diagrams where applicable`,
+        `Check units and use appropriate significant figures`,
+        `Use ${course.tools.join(' or ')} for numerical verification`,
+        `Consult ${course.textbooks[0] || 'course textbook'} for formulas and constants`
+      ];
+    } else {
+      insights = [
+        `Focus on understanding core concepts in ${course.name.toLowerCase()}`,
+        `Use ${course.tools.join(' or ')} as appropriate`,
+        `Reference: ${course.textbooks[0] || 'course textbook'}`,
+        `Show all work and reasoning clearly`,
+        `Consider practical applications and real-world examples`
+      ];
+    }
+    
+    this.findings.insights = insights;
+
+    // Generate course-specific next steps
+    this.findings.nextSteps = [
+      `Review ${course.name} course materials and notes`,
+      `Identify which ${course.commonTopics[0] || 'topic'} concepts apply`,
+      `Plan solution approach using ${course.tools[0] || 'appropriate tools'}`,
+      `Work through the problem step-by-step`,
+      `Verify solution and check for common errors`,
+      `Format solution according to course requirements`
+    ];
+    
+    console.log(`✅ Generated course-specific research for ${course.name}`);
+  }
+
   generateReport(): string {
     const report = `# AI Research Report - ${this.findings.date}
 
@@ -463,6 +838,13 @@ ${this.findings.insights.map(insight => `- ${insight}`).join('\n')}
 ## Next Steps
 
 ${this.findings.nextSteps.map(step => `- ${step}`).join('\n')}
+
+${this.relevantResources.length > 0 ? `
+## Learning Resources
+
+${this.relevantResources.slice(0, 10).map(r => `- **[${r.title}](${r.url})**: ${r.description}`).join('\n')}
+
+` : ''}
 
 ${this.findings.perplexityResults ? `
 ## Perplexity AI Research Results

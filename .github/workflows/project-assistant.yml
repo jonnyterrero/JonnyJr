@@ -63,51 +63,68 @@ jobs:
           path: |
             RESEARCH.md
             SYNTHESIS.md
-      - name: Create branch and commit
+      - name: Create/Update workflow branch and commit
         run: |
-          # Create unique branch name with timestamp
-          BRANCH_NAME="project-$(date +%Y%m%d-%H%M%S)"
-          echo "Creating branch: $BRANCH_NAME"
+          # Use consistent branch name for this workflow
+          BRANCH_NAME="workflow/project-assistant"
+          echo "📦 Using branch: $BRANCH_NAME"
           
-          # Delete local branch if it exists
-          git branch -D "$BRANCH_NAME" 2>/dev/null || true
+          # Fetch to check if branch exists remotely
+          git fetch origin "$BRANCH_NAME" 2>/dev/null || true
           
-          # Create and switch to new branch
-          git switch -c "$BRANCH_NAME"
+          # Checkout existing branch or create new one
+          if git show-ref --verify --quiet refs/remotes/origin/"$BRANCH_NAME"; then
+            echo "✅ Branch exists remotely, checking out..."
+            git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+          else
+            echo "🆕 Creating new branch..."
+            git checkout -b "$BRANCH_NAME"
+          fi
+          
           git add RESEARCH.md SYNTHESIS.md
-          git -c user.name='ci' -c user.email='ci@users.noreply.github.com' commit -m "Project: ${{ github.event.inputs.topic }}"
+          git -c user.name='ci' -c user.email='ci@users.noreply.github.com' commit -m "Project: ${{ github.event.inputs.topic }}" || {
+            echo "ℹ️  No changes to commit (files may be unchanged)"
+          }
           
           # Ensure PAT-based origin using actor:token
           git remote remove origin || true
           git remote add origin https://${GITHUB_ACTOR}:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git
           git ls-remote --heads origin >/dev/null 2>&1 || true
-          # Force push to create/update the branch
-          git push --force --set-upstream origin "$BRANCH_NAME"
+          
+          # Push to update the branch
+          git push --force-with-lease origin "$BRANCH_NAME" || git push --force origin "$BRANCH_NAME"
+          echo "✅ Updated branch: $BRANCH_NAME"
           
           # Store branch name for PR creation
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-      - name: Open PR
+      - name: Create or Update PR
         env:
           GH_TOKEN: ${{ secrets.ACTIONS_PAT }}
         run: |
-          echo "Attempting to create PR for branch: $BRANCH_NAME"
-          if gh pr create --title "Project Help: ${{ github.event.inputs.topic }}" --body-file SYNTHESIS.md --base main --head "$BRANCH_NAME" --label "${{ github.event.inputs.category }}" 2>/dev/null; then
-            echo "✅ PR created successfully"
+          echo "🔍 Checking for existing PR on branch: $BRANCH_NAME"
+          
+          # Check if PR already exists for this branch
+          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --base main --json number --jq '.[0].number' 2>/dev/null || echo "")
+          
+          if [ -n "$EXISTING_PR" ]; then
+            echo "✅ PR #$EXISTING_PR already exists, updating..."
+            gh pr edit "$EXISTING_PR" \
+              --title "Project Help: ${{ github.event.inputs.topic }}" \
+              --body-file SYNTHESIS.md \
+              --add-label "${{ github.event.inputs.category }}" 2>/dev/null || true
+            echo "✅ PR #$EXISTING_PR updated"
           else
-            echo "⚠️  Could not create PR automatically. Please create manually:"
-            echo "   Branch: $BRANCH_NAME"
-            echo "   Title: Project Help: ${{ github.event.inputs.topic }}"
-            echo "   Body: See SYNTHESIS.md file"
-            echo "   Label: ${{ github.event.inputs.category }}"
-            echo ""
-            echo "Files created:"
-            echo "- RESEARCH.md (research findings)"
-            echo "- SYNTHESIS.md (synthesis and plan)"
-            echo ""
-            echo "To create PR manually:"
-            echo "1. Go to your repository"
-            echo "2. Switch to branch: $BRANCH_NAME"
-            echo "3. Click 'Compare & pull request'"
-            echo "4. Use SYNTHESIS.md content as PR description"
-            echo "5. Add label: ${{ github.event.inputs.category }}"
+            echo "🆕 Creating new PR..."
+            if gh pr create \
+              --title "Project Help: ${{ github.event.inputs.topic }}" \
+              --body-file SYNTHESIS.md \
+              --base main \
+              --head "$BRANCH_NAME" \
+              --label "${{ github.event.inputs.category }}" 2>/dev/null; then
+              echo "✅ PR created successfully"
+            else
+              echo "⚠️  Could not create PR automatically. Please create manually:"
+              echo "   Branch: $BRANCH_NAME"
+              echo "   URL: https://github.com/${{ github.repository }}/compare/main...$BRANCH_NAME"
+            fi
           fi

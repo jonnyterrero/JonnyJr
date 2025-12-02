@@ -2,8 +2,21 @@ name: AI Research Workflow
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 9 * * 1-5'  # Run at 9 AM UTC, Monday to Friday
+    inputs:
+      topic:
+        description: 'Research topic (e.g., "biomaterials synthesis", "differential equations")'
+        required: true
+        default: 'repo roadmap and improvements'
+      category:
+        description: 'Research category'
+        required: false
+        default: 'Personal Projects'
+        type: choice
+        options:
+          - 'Personal Projects'
+          - 'Reflections & Questions'
+          - 'Math & Coding'
+          - 'Sciences'
 
 jobs:
   research:
@@ -16,21 +29,70 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        npm install
+        cd packages/ts && npm install
       
     - name: Run research script
-      run: npm run research
       env:
+        PPLX_API_KEY: ${{ secrets.PPLX_API_KEY }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        npx ts-node scripts/research.ts "${{ github.event.inputs.topic }}"
+        
+    - name: Configure git
+      env:
+        ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
+      run: |
+        if [ -z "$ACTIONS_PAT" ]; then
+          echo "ACTIONS_PAT is not set; skipping commit" >&2
+          exit 0
+        fi
+        git config --global --unset-all http.https://github.com/.extraheader || true
+        git config --local --unset-all http.https://github.com/.extraheader || true
+        git config --global user.name "${GITHUB_ACTOR}"
+        git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+        git remote remove origin || true
+        git remote add origin https://${GITHUB_ACTOR}:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git
         
     - name: Commit research results
+      env:
+        ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add RESEARCH.md
-        git commit -m "Update research findings" || exit 0
-        git push
+        if [ -z "$ACTIONS_PAT" ]; then
+          echo "⚠️  ACTIONS_PAT not set. Research results saved but not committed."
+          echo "To commit automatically, add ACTIONS_PAT secret to repository."
+          exit 0
+        fi
+        
+        # Use consistent branch name for this workflow
+        BRANCH_NAME="workflow/ai-research"
+        echo "📦 Using branch: $BRANCH_NAME"
+        
+        # Fetch to check if branch exists remotely
+        git fetch origin "$BRANCH_NAME" 2>/dev/null || true
+        
+        # Checkout existing branch or create new one
+        if git show-ref --verify --quiet refs/remotes/origin/"$BRANCH_NAME"; then
+          echo "✅ Branch exists remotely, checking out..."
+          git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME"
+        else
+          echo "🆕 Creating new branch..."
+          git checkout -b "$BRANCH_NAME"
+        fi
+        
+        git add RESEARCH.md || true
+        
+        if git diff --staged --quiet; then
+          echo "ℹ️  No changes to commit (file may be unchanged)"
+          exit 0
+        fi
+        
+        git commit -m "Research: ${{ github.event.inputs.topic }} [Category: ${{ github.event.inputs.category }}]" || exit 0
+        git push --force-with-lease origin "$BRANCH_NAME" || git push --force origin "$BRANCH_NAME" || exit 0
+        
+        echo "✅ Research committed to branch: $BRANCH_NAME"

@@ -1,27 +1,21 @@
-# Global owners
+# CODEOWNERS file for automatic reviewer assignment
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
 * @jonnyterrero
 
-# TypeScript package
-/packages/ts/ @jonnyterrero
+# Critical infrastructure files
+/.github/workflows/ @jonnyterrero
+/.github/CODEOWNERS @jonnyterrero
+/scripts/ @jonnyterrero
 
-# Python package  
-/packages/py/ @jonnyterrero
-
-# GitHub workflows and templates
-/.github/ @jonnyterrero
+# Configuration files
+package.json @jonnyterrero
+tsconfig*.json @jonnyterrero
+*.toml @jonnyterrero
+requirements.txt @jonnyterrero
 
 # Documentation
 /docs/ @jonnyterrero
-/README.md @jonnyterrero
-/CONTRIBUTING.md @jonnyterrero
-
-# School work
-/school/ @jonnyterrero
-
-# Cursor rules
-/.cursor/ @jonnyterrero
-
-# Critical files
-/.env.example @jonnyterrero
-/package.json @jonnyterrero
-/tsconfig.base.json @jonnyterrero
+README.md @jonnyterrero
+CONTRIBUTING.md @jonnyterrero
